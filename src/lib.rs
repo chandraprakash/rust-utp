@@ -63,6 +63,7 @@ extern crate num;
 #[macro_use] extern crate log;
 #[cfg(test)] extern crate quickcheck;
 extern crate with_read_timeout;
+extern crate net2;
 
 // Public API
 pub use socket::UtpSocket;

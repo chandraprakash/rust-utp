@@ -6,6 +6,7 @@ use util::{now_microseconds, ewma};
 use packet::{Packet, PacketType, Encodable, Decodable, ExtensionType, HEADER_SIZE};
 use rand::{self, Rng};
 use with_read_timeout::WithReadTimeout;
+use net2::UdpBuilder;
 
 // For simplicity's sake, let us assume no packet will ever exceed the
 // Ethernet maximum transfer unit of 1500 bytes.
@@ -108,6 +109,7 @@ fn take_address<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
 /// socket.close();
 /// ```
 pub struct UtpSocket {
+    socket2: UdpBuilder,
     /// The wrapped UDP socket
     socket: UdpSocket,
 
@@ -205,6 +207,7 @@ impl UtpSocket {
         }();
 
         UtpSocket {
+            socket2: UdpBuilder::new_v4().unwrap(),
             socket: s,
             connected_to: src,
             receiver_connection_id: receiver_id,
@@ -233,6 +236,11 @@ impl UtpSocket {
             max_retransmission_retries: MAX_RETRANSMISSION_RETRIES,
         }
     }
+
+    /// Creates a new unbound UTP socket
+    // pub fn new() -> Result<UtpSocket> {
+    //     UtpSocket::from_raw_parts(s, a);
+    // }
 
     /// Creates a new UTP socket from the given address.
     ///
