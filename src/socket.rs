@@ -109,7 +109,6 @@ fn take_address<A: ToSocketAddrs>(addr: A) -> Result<SocketAddr> {
 /// socket.close();
 /// ```
 pub struct UtpSocket {
-    socket2: UdpBuilder,
     /// The wrapped UDP socket
     socket: UdpSocket,
 
@@ -207,7 +206,6 @@ impl UtpSocket {
         }();
 
         UtpSocket {
-            socket2: UdpBuilder::new_v4().unwrap(),
             socket: s,
             connected_to: src,
             receiver_connection_id: receiver_id,
@@ -242,6 +240,15 @@ impl UtpSocket {
     //     UtpSocket::from_raw_parts(s, a);
     // }
 
+    pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpSocket> {
+        let udp_builder = try!(UdpBuilder::new_v4());
+        let _ = try!(udp_builder.reuse_address(true));
+        let addr = try!(take_address(addr));
+        let udp_socket = try!(udp_builder.bind(addr));
+        Ok(UtpSocket::from_raw_parts(udp_socket, addr))
+        //take_address(addr).and_then(|a| UdpSocket::bind(a).map(|s| UtpSocket::from_raw_parts(s, a)))
+    }
+
     /// Creates a new UTP socket from the given address.
     ///
     /// The address type can be any implementer of the `ToSocketAddr` trait. See its documentation
@@ -270,6 +277,59 @@ impl UtpSocket {
             SocketAddr::V6(_) => ":::0",
         };
         let mut socket = try!(UtpSocket::bind(my_addr));
+        socket.connected_to = addr;
+
+        let mut packet = Packet::new();
+        packet.set_type(PacketType::Syn);
+        packet.set_connection_id(socket.receiver_connection_id);
+        packet.set_seq_nr(socket.seq_nr);
+
+        let mut len = 0;
+        let mut buf = [0; BUF_SIZE];
+
+        let mut syn_timeout = socket.congestion_timeout as i64;
+        for _ in 0..MAX_SYN_RETRIES {
+            packet.set_timestamp_microseconds(now_microseconds());
+
+            // Send packet
+            debug!("Connecting to {}", socket.connected_to);
+            try!(socket.socket.send_to(&packet.to_bytes()[..], socket.connected_to));
+            socket.state = SocketState::SynSent;
+            debug!("sent {:?}", packet);
+
+            // Validate response
+            match socket.socket.recv_timeout(&mut buf, syn_timeout) {
+                Ok((read, src)) => { socket.connected_to = src; len = read; break; },
+                Err(ref e) if (e.kind() == ErrorKind::WouldBlock ||
+                               e.kind() == ErrorKind::TimedOut) => {
+                    debug!("Timed out, retrying");
+                    syn_timeout *= 2;
+                    continue;
+                },
+                Err(e) => return Err(e),
+            };
+        }
+
+        let addr = socket.connected_to;
+        let packet = try!(Packet::from_bytes(&buf[..len]).or(Err(SocketError::InvalidPacket)));
+        debug!("received {:?}", packet);
+        try!(socket.handle_packet(&packet, addr));
+
+        debug!("connected to: {}", socket.connected_to);
+
+        return Ok(socket);
+    }
+
+    /// connect_with_reuse_address
+    pub fn connect_with_reuse_address<A: ToSocketAddrs>(other: A, outgoing_port: u16) -> Result<UtpSocket> {
+        let addr = try!(take_address(other));
+        let mut v4_addr = String::from("0.0.0.0:");
+        v4_addr.push_str(&outgoing_port.to_string());
+        let my_addr = match addr {
+            SocketAddr::V4(_) => v4_addr.as_str(),
+            SocketAddr::V6(_) => ":::0",
+        };
+        let mut socket = try!(UtpSocket::bind_with_reuse_address(my_addr));
         socket.connected_to = addr;
 
         let mut packet = Packet::new();
@@ -1148,6 +1208,15 @@ impl UtpListener {
     /// If more than one valid address is specified, only the first will be used.
     pub fn bind<A: ToSocketAddrs>(addr: A) -> Result<UtpListener> {
         UdpSocket::bind(addr).and_then(|s| Ok(UtpListener { socket: s}))
+    }
+
+    /// bind_with_reuse_address
+    pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpListener> {
+        let udp_builder = try!(UdpBuilder::new_v4());
+        let _ = try!(udp_builder.reuse_address(true));
+        let udp_socket = try!(udp_builder.bind(addr));
+        Ok(UtpListener { socket: udp_socket})
+        //UdpSocket::bind(addr).and_then(|s| Ok(UtpListener { socket: s}))
     }
 
     /// Accepts a new incoming connection from this listener.

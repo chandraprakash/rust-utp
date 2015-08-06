@@ -56,6 +56,7 @@
 //! ```
 
 #![deny(missing_docs)]
+#![feature(convert)]
 
 extern crate rand;
 extern crate time;

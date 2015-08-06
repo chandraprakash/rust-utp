@@ -38,6 +38,11 @@ impl UtpStream {
         UtpSocket::bind(addr).map(|s| UtpStream { socket: s })
     }
 
+    /// bind_with_reuse_address
+    pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpStream> {
+        UtpSocket::bind_with_reuse_address(addr).map(|s| UtpStream { socket: s })
+    }
+
     /// Opens a uTP connection to a remote host by hostname or IP address.
     ///
     /// The address type can be any implementer of the `ToSocketAddr` trait. See its documentation
@@ -47,6 +52,12 @@ impl UtpStream {
     pub fn connect<A: ToSocketAddrs>(dst: A) -> Result<UtpStream> {
         // Port 0 means the operating system gets to choose it
         UtpSocket::connect(dst).map(|s| UtpStream { socket: s })
+    }
+
+    /// connect_with_reuse_address
+    pub fn connect_with_reuse_address<A: ToSocketAddrs>(dst: A, outgoing_port: u16) -> Result<UtpStream> {
+        // Port 0 means the operating system gets to choose it
+        UtpSocket::connect_with_reuse_address(dst, outgoing_port).map(|s| UtpStream { socket: s })
     }
 
     /// Gracefully closes connection to peer.
