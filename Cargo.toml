@@ -30,14 +30,20 @@ quickcheck = "*"
 [lib]
 name = "utp"
 
-[[bin]]
+[[example]]
 name = "utpcat"
 path = "examples/utpcat/main.rs"
 test = false
 bench = false
 
-[[bin]]
+[[example]]
 name = "echo-server"
 path = "examples/echo-server/main.rs"
 test = false
+bench = false
+
+[[example]]
+name = "hole-punching"
+path = "examples/hole-punching/main.rs"
+test = true
 bench = false
