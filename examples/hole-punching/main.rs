@@ -44,7 +44,6 @@ fn main() {
     };
     let dst_addr: &str = &dst_addr;
     let my_addr = format!("{}:{}", "0.0.0.0", outgoing_port);
-    //let my_addr: &str = &my_addr;
 
 
 //    loop {
@@ -54,11 +53,25 @@ fn main() {
             let my_addr_clone = my_addr.clone();
             let my_addr_clone: &str = &my_addr_clone;
             let mut stream = iotry!(UtpStream::bind_with_reuse_address(my_addr_clone));
+            let mut writer = stdout();
             let _ = writeln!(&mut stderr(), "Serving on {}", my_addr_clone);
+
+            // Create a reasonably sized buffer
+            let mut payload = vec![0; 1024 * 1024];
+
+            loop {
+                match stream.read(&mut payload) {
+                    Ok(0) => break,
+                    Ok(read) => iotry!(writer.write(&payload[..read])),
+                    Err(e) => panic!("{}", e)
+                };
+            }
+
+            let _ = writeln!(&mut stderr(), "Exiting Server");
         }).unwrap();
 
         // Create a stream and try to connect to the remote address
-        let _ = writeln!(&mut stderr(), "trying to connected to {:?}; outgoing port {:?}", dst_addr, outgoing_port);
+        let _ = writeln!(&mut stderr(), "trying to connect to {:?}; outgoing port {:?}", dst_addr, outgoing_port);
         let mut stream = iotry!(UtpStream::connect_with_reuse_address(dst_addr, outgoing_port));
         let _ = writeln!(&mut stderr(), "connected to {}", dst_addr);
         // TODO try private addresses as well!! in a separate thread
