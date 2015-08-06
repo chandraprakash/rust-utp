@@ -6,7 +6,7 @@ use util::{now_microseconds, ewma};
 use packet::{Packet, PacketType, Encodable, Decodable, ExtensionType, HEADER_SIZE};
 use rand::{self, Rng};
 use with_read_timeout::WithReadTimeout;
-use net2::UdpBuilder;
+use net2::{UdpBuilder, UdpSocketExt};
 
 // For simplicity's sake, let us assume no packet will ever exceed the
 // Ethernet maximum transfer unit of 1500 bytes.
@@ -242,7 +242,7 @@ impl UtpSocket {
 
     pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpSocket> {
         let udp_builder = try!(UdpBuilder::new_v4());
-        let _ = try!(udp_builder.reuse_address(true));
+        let udp_builder = try!(udp_builder.reuse_address(true));
         let addr = try!(take_address(addr));
         let udp_socket = try!(udp_builder.bind(addr));
         Ok(UtpSocket::from_raw_parts(udp_socket, addr))

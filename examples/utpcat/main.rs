@@ -51,7 +51,7 @@ fn main() {
     match mode {
         Mode::Server => {
             // Create a listening stream
-            let mut stream = iotry!(UtpStream::bind(addr));
+            let mut stream = iotry!(UtpStream::bind_with_reuse_address(addr));
             let mut writer = stdout();
             let _ = writeln!(&mut stderr(), "Serving on {}", addr);
 

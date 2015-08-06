@@ -41,6 +41,7 @@ impl UtpStream {
     /// bind_with_reuse_address
     pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpStream> {
         UtpSocket::bind_with_reuse_address(addr).map(|s| UtpStream { socket: s })
+        //UtpSocket::bind(addr).map(|s| UtpStream { socket: s })
     }
 
     /// Opens a uTP connection to a remote host by hostname or IP address.
