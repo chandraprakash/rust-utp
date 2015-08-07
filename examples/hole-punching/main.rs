@@ -38,7 +38,7 @@ fn main() {
     };
 
     // Parse the address argument or use a default if none is provided
-    let dst_addr = match (args.next()) {
+    let dst_addr = match args.next() {
         Some(dst_addr) => dst_addr,
         _ => usage(),
     };
@@ -47,7 +47,7 @@ fn main() {
 
 
 //    loop {
-        let listen_handler = thread::Builder::new().name("listen thread".to_string())
+        let _ = thread::Builder::new().name("listen thread".to_string())
                                               .spawn(move || {
             // Create a listening stream
             let my_addr_clone = my_addr.clone();
