@@ -18,7 +18,9 @@ num = "*"
 log = "0.3"
 env_logger = "0.3"
 rand = "0.3"
-net2 = "*"
+
+[dependencies.net2]
+git = "https://github.com/chandraprakash/net2-rs"
 
 [dependencies.with_read_timeout]
 path = "with_read_timeout"

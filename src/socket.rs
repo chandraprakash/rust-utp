@@ -242,11 +242,10 @@ impl UtpSocket {
 
     pub fn bind_with_reuse_address<A: ToSocketAddrs>(addr: A) -> Result<UtpSocket> {
         let udp_builder = try!(UdpBuilder::new_v4());
-        let udp_builder = try!(udp_builder.reuse_address(true));
+        let _ = try!(udp_builder.reuse_address(true));
         let addr = try!(take_address(addr));
         let udp_socket = try!(udp_builder.bind(addr));
         Ok(UtpSocket::from_raw_parts(udp_socket, addr))
-        //take_address(addr).and_then(|a| UdpSocket::bind(a).map(|s| UtpSocket::from_raw_parts(s, a)))
     }
 
     /// Creates a new UTP socket from the given address.
