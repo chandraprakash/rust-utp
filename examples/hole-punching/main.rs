@@ -14,7 +14,7 @@ macro_rules! iotry {
 }
 
 fn usage() -> ! {
-    println!("Usage: utp <outgoing_port> <address> <port>");
+    println!("Usage: hole-punching <own_port> <address>:<port>");
     process::exit(1);
 }
 
@@ -32,18 +32,18 @@ fn main() {
     args.next();
 
     // Parse outgoing port
-    let outgoing_port: u16 = match args.next() {
+    let own_port: u16 = match args.next() {
         Some(p) => iotry!(u16::from_str(&p)),
         _ => usage(),
     };
 
     // Parse the address argument or use a default if none is provided
-    let dst_addr = match (args.next(), args.next()) {
-        (Some(ip), Some(port)) => format!("{}:{}", ip, port),
+    let dst_addr = match (args.next()) {
+        Some(dst_addr) => dst_addr,
         _ => usage(),
     };
     let dst_addr: &str = &dst_addr;
-    let my_addr = format!("{}:{}", "0.0.0.0", outgoing_port);
+    let my_addr = format!("{}:{}", "0.0.0.0", own_port);
 
 
 //    loop {
@@ -71,9 +71,24 @@ fn main() {
         }).unwrap();
 
         // Create a stream and try to connect to the remote address
-        let _ = writeln!(&mut stderr(), "trying to connect to {:?}; outgoing port {:?}", dst_addr, outgoing_port);
-        let mut stream = iotry!(UtpStream::connect_with_reuse_address(dst_addr, outgoing_port));
+        let _ = writeln!(&mut stderr(), "trying to connect to {:?}; outgoing port {:?}", dst_addr, own_port);
+        let mut stream = iotry!(UtpStream::connect_with_reuse_address(dst_addr, own_port));
         let _ = writeln!(&mut stderr(), "connected to {}", dst_addr);
+        let mut reader = stdin();
+
+        // Create a reasonably sized buffer
+        let mut payload = vec![0; 1024 * 1024];
+        loop {
+            match reader.read(&mut payload) {
+                Ok(0) => break,
+                Ok(read) => iotry!(stream.write(&payload[..read])),
+                Err(e) => {
+                    iotry!(stream.close());
+                    panic!("{:?}", e);
+                }
+            };
+        }
+
         // TODO try private addresses as well!! in a separate thread
 //    }
 
