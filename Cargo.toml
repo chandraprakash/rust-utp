@@ -18,9 +18,7 @@ num = "*"
 log = "0.3"
 env_logger = "0.3"
 rand = "0.3"
-
-[dependencies.net2]
-git = "https://github.com/chandraprakash/net2-rs"
+net2 = "*"
 
 [dependencies.with_read_timeout]
 path = "with_read_timeout"
@@ -48,4 +46,16 @@ bench = false
 name = "hole-punching"
 path = "examples/hole-punching/main.rs"
 test = true
+bench = false
+
+[[example]]
+name = "utpcat2"
+path = "examples/utpcat2/main.rs"
+test = false
+bench = false
+
+[[example]]
+name = "echo-server2"
+path = "examples/echo-server2/main.rs"
+test = false
 bench = false
