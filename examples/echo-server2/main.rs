@@ -24,7 +24,7 @@ fn main() {
     let udp_builder = iotry!(UdpBuilder::new_v4());
     let _ = iotry!(udp_builder.reuse_address(true));
 
-    let socket = iotry!(udp_builder.bind("0.0.0.0:5555"));
+    let socket = iotry!(udp_builder.bind("0.0.0.0:5556"));
     let local_addr = iotry!(socket.local_addr());
     println!("Started at {:?}", local_addr);
 
@@ -43,13 +43,13 @@ fn main() {
                     0 => {
                         endpoints.push(src.clone());
                         // send "retry" try again to get b's endpoint
-                        println!("send \"retry\" to {:?}; try again to get b's endpoint ", src);
+                        println!("1 send \"retry\" to {:?}; try again to get b's endpoint ", src);
                         let _ = socket.send_to("retry".as_bytes(), &src);
                     },
                     1 => {
                         if (endpoints[0] == src) {
                             // send "retry" try again to get b's endpoint
-                            println!("send \"retry\" to {:?}; try again to get b's endpoint ", src);
+                            println!("2 send \"retry\" to {:?}; try again to get b's endpoint ", src);
                             let _ = socket.send_to("retry".as_bytes(), &src);
                         } else {
                             endpoints.push(src);
@@ -75,8 +75,6 @@ fn main() {
                     },
                     _ => panic!("{Something is wrong !!!}"),
                 }
-
-                let _ = socket.send_to(src.to_string().as_bytes(), &src);
             },
             Err(e) => println!("{}", e)
         }
