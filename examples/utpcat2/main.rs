@@ -1,4 +1,6 @@
 //! Implementation of a simple uTP client and server.
+#![feature(duration, socket_timeout)]
+
 #[macro_use]
 extern crate log;
 extern crate env_logger;
@@ -10,6 +12,7 @@ use net2::UdpBuilder;
 use std::str::FromStr;
 use std::net::SocketAddr;
 use std::thread;
+use std::time::Duration;
 
 
 // A little macro to make it easier to unwrap return values or halt the program
@@ -60,7 +63,7 @@ fn main() {
         (Some(ip), Some(port)) => format!("{}:{}", ip, port),
         _ => usage(),
     };
-    let addr: &str = &addr;
+    let rendezvous_server_addr: &str = &addr;
 
     let mut peer_addr: Option<SocketAddr> = None;
     let mut local_addr: Option<SocketAddr> = None;
@@ -72,8 +75,8 @@ fn main() {
 
         while true {
             thread::sleep_ms(1000);
-            iotry!(udp_socket.send_to(b"hello", &addr));
-            println!("send_to(b\"hello\" to  {:?})", addr);
+            iotry!(udp_socket.send_to(b"hello", &rendezvous_server_addr));
+            println!("send_to(b\"hello\" to  {:?})", rendezvous_server_addr);
             let mut buf = [0; 100];
             let (amt, src) = iotry!(udp_socket.recv_from(&mut buf));
             let buf = &mut buf[..amt];
@@ -106,17 +109,32 @@ fn main() {
     let local_addr = local_addr.unwrap();
     let peer_addr = peer_addr.unwrap();
 
-    // get peer address !  // FIXME
-    //let dst_addr = format!("{}:{}", "127.0.0.1", "5666"); // FIXME
-    //let dst_addr2: &str = &public_endpoint;
+    // Send data via same outgoing port to peer address until you receive data form it
+    {
+        let udp_builder = iotry!(UdpBuilder::new_v4());
+        let _ = iotry!(udp_builder.reuse_address(true));
+        let udp_socket = iotry!(udp_builder.bind(local_addr));
 
-    // Send data to peer until you receive data form it
+        while true {
+            thread::sleep_ms(100);
+            iotry!(udp_socket.send_to(b"punch", peer_addr));
+            println!("sent \"punch\" to  {:?})", peer_addr);
+            let mut buf = [0; 10];
 
-
-
-
-
-
+            udp_socket.set_read_timeout(Some(Duration::new(1, 0)));
+            match udp_socket.recv_from(&mut buf) {
+                Ok(_) => {
+                    //let buf = &mut buf[..amt];
+                    //let response = String::from_utf8(array_as_vector(buf)).unwrap();
+                    println!("Got message back from {:?}", peer_addr);
+                    break;
+                },
+                _ => {
+                    println!("Send again to {:?}", peer_addr);
+                },
+            }
+        }
+    }
 
     match mode {
         Mode::Server => {
