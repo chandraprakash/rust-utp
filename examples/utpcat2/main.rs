@@ -64,8 +64,8 @@ fn main() {
 
     let mut peer_addr: Option<SocketAddr> = None;
     let mut local_addr: Option<SocketAddr> = None;
-    {
-        // get peer's public endpoint
+    {  // get peer's public endpoint (peer_addr) and own outgoing port (local_addr)
+
         let udp_builder = iotry!(UdpBuilder::new_v4());
         let _ = iotry!(udp_builder.reuse_address(true));
         let udp_socket = iotry!(udp_builder.bind("0.0.0.0:0"));
@@ -144,6 +144,7 @@ fn main() {
             println!("connect local_addr: {:?} with reuse_address to  {:?}", local_addr, peer_addr);
             let mut stream = iotry!(UtpStream::connect_with_reuse_address(peer_addr,
                                                                           local_addr.port()));
+            println!("connected from local_addr: {:?} to  {:?}", local_addr, peer_addr);
             let mut reader = stdin();
 
             // Create a reasonably sized buffer
