@@ -8,6 +8,7 @@ extern crate net2;
 use std::process;
 use net2::UdpBuilder;
 use std::str::FromStr;
+use std::net::SocketAddr;
 
 // A little macro to make it easier to unwrap return values or halt the program
 macro_rules! iotry {
@@ -17,6 +18,14 @@ macro_rules! iotry {
 fn usage() -> ! {
     println!("Usage: utp [-s|-c] <own_port> <address> <port>");
     process::exit(1);
+}
+
+pub fn array_as_vector(arr: &[u8]) -> Vec<u8> {
+  let mut vector = Vec::new();
+  for i in arr.iter() {
+    vector.push(*i);
+  }
+  vector
 }
 
 fn main() {
@@ -45,23 +54,50 @@ fn main() {
 
     // Parse the address argument or use a default if none is provided
     let addr = match (args.next(), args.next()) {
-        (None, None) => "127.0.0.1:8080".to_owned(),
+        (None, None) => "127.0.0.1:5555".to_owned(),
         (Some(ip), Some(port)) => format!("{}:{}", ip, port),
         _ => usage(),
     };
     let addr: &str = &addr;
 
 
-    // get own public endpoint and print ! // FIXME
+    // get peer's public endpoint
     let udp_builder = iotry!(UdpBuilder::new_v4());
     let _ = iotry!(udp_builder.reuse_address(true));
     let udp_socket = iotry!(udp_builder.bind("0.0.0.0:0"));
-    let local_addr = iotry!(udp_socket.local_addr());
 
+    let mut peer_addr: Option<SocketAddr> = None;
+    while true {
+        iotry!(udp_socket.send_to(b"hello", &addr));
+        println!("send_to(b\"hello\" to  {:?})", addr);
+        let mut buf = [0; 100];
+        let (amt, src) = iotry!(udp_socket.recv_from(&mut buf));
+        let buf = &mut buf[..amt];
+        let public_endpoint = String::from_utf8(array_as_vector(buf)).unwrap();
+
+        println!("response: {:?}", public_endpoint);
+
+        if public_endpoint == "retry" {
+            continue;
+        }
+
+
+        match SocketAddr::from_str(&public_endpoint) {
+            Ok(addr) => {
+                peer_addr = Some(addr);
+                println!("got peer's public endpoint {:?}", public_endpoint);
+                break;
+            },
+            _ => { continue; }
+        };
+    }
+
+    let local_addr = iotry!(udp_socket.local_addr());
+    let peer_addr = peer_addr.unwrap();
 
     // get peer address !  // FIXME
-    let dst_addr = format!("{}:{}", "0.0.0.0", "0"); // FIXME
-    let dst_addr2: &str = &dst_addr;
+    //let dst_addr = format!("{}:{}", "127.0.0.1", "5666"); // FIXME
+    //let dst_addr2: &str = &public_endpoint;
 
 
     match mode {
@@ -87,7 +123,8 @@ fn main() {
         }
         Mode::Client => {
             // Create a stream and try to connect to the remote address
-            let mut stream = iotry!(UtpStream::connect_with_reuse_address(dst_addr2, local_addr.port()));
+            let mut stream = iotry!(UtpStream::connect_with_reuse_address(peer_addr,
+                                                                          local_addr.port()));
             let mut reader = stdin();
 
             // Create a reasonably sized buffer

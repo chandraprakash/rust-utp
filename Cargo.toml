@@ -51,11 +51,11 @@ bench = false
 [[example]]
 name = "utpcat2"
 path = "examples/utpcat2/main.rs"
-test = false
+test = true
 bench = false
 
 [[example]]
 name = "echo-server2"
 path = "examples/echo-server2/main.rs"
-test = false
+test = true
 bench = false
