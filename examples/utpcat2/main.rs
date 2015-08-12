@@ -21,7 +21,7 @@ macro_rules! iotry {
 }
 
 fn usage() -> ! {
-    println!("Usage: utp [-s|-c] <own_port> <address> <port>");
+    println!("Usage: utp [-s|-c] <address>:<port>");
     process::exit(1);
 }
 
@@ -58,12 +58,15 @@ fn main() {
     };
 
     // Parse the address argument or use a default if none is provided
-    let addr = match (args.next(), args.next()) {
-        (None, None) => "127.0.0.1:5556".to_owned(),
-        (Some(ip), Some(port)) => format!("{}:{}", ip, port),
-        _ => usage(),
+    let addr = match args.next() {
+        None => "127.0.0.1:5556".to_owned(),
+        Some(addr) => addr,
     };
-    let rendezvous_server_addr: &str = &addr;
+
+    let rendezvous_server_addr = match SocketAddr::from_str(&addr) {
+        Ok(addr) => addr,
+        _=> usage(),
+    };
 
     let mut peer_addr: Option<SocketAddr> = None;
     let mut local_addr: Option<SocketAddr> = None;
@@ -127,6 +130,8 @@ fn main() {
                     //let buf = &mut buf[..amt];
                     //let response = String::from_utf8(array_as_vector(buf)).unwrap();
                     println!("Got message back from {:?}", peer_addr);
+                    iotry!(udp_socket.send_to(b"punch", peer_addr));
+                    println!("sent \"punch\" to  {:?})", peer_addr);
                     break;
                 },
                 _ => {
@@ -162,7 +167,7 @@ fn main() {
             println!("connect local_addr: {:?} with reuse_address to  {:?}", local_addr, peer_addr);
             let mut stream = iotry!(UtpStream::connect_with_reuse_address(peer_addr,
                                                                           local_addr.port()));
-            println!("connected from local_addr: {:?} to  {:?}", local_addr, peer_addr);
+            println!("connected from local_addr: {:?} to  {:?} !!!!. Type something now ..", local_addr, peer_addr);
             let mut reader = stdin();
 
             // Create a reasonably sized buffer
