@@ -55,7 +55,7 @@ test = true
 bench = false
 
 [[example]]
-name = "echo-server2"
-path = "examples/echo-server2/main.rs"
+name = "rendezvous-server"
+path = "examples/rendezvous-server/main.rs"
 test = true
 bench = false
